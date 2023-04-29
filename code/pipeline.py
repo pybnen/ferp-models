@@ -1,15 +1,22 @@
 #!/usr/bin/env python2
-
+from datetime import datetime
 import sys, os, shutil, errno, subprocess, signal
 
 home = os.path.dirname(os.path.abspath(__file__)) + "/"
-dependencies = ["ijtihad/ijtihad", "picosat-965/picosat", 
+# dependencies = ["ijtihad/ijtihad", "picosat-965/picosat", 
+#                 "booleforce-1.2/tracecheck", "toferp/toferp", 
+#                 "ferpcert/ferpcheck", "ferpcert2/ferpcert",
+#                 "certcheck-1.0.1/certcheck"]
+
+#TODO deploy my version of ijtihad in repo, use this repo in requirements.py
+# use my version of ijtihad
+dependencies = ["../../ijtihad/ijtihad", "picosat-965/picosat", 
                 "booleforce-1.2/tracecheck", "toferp/toferp", 
                 "ferpcert/ferpcheck", "ferpcert2/ferpcert",
                 "certcheck-1.0.1/certcheck"]
 
 dependencies = [home + x for x in dependencies]
-tmp_dir = home + "tmp/tmp-%d/" % os.getpid()
+tmp_dir = home + "tmp/{}/".format(datetime.now().strftime("%Y%m%d_%H-%M-%S"))
 
 trim = False
 
@@ -77,21 +84,26 @@ def main():
 
   sys.stdout.write("Calling QBF solver ... ")
   sys.stdout.flush()
-  ret = subprocess.call([dependencies[0], "--wit_per_call=-1", "--cex_per_call=-1",
-                         "--tmp_dir="+tmp_dir, "--log_phi="+tmp_dir+"tmp.cnf", input_path]) #, stdout=FNULL, stderr=FNULL)
+  ret = subprocess.call([dependencies[0],
+                         "--wit_per_call=-1",
+                         "--cex_per_call=-1",
+                         "--tmp_dir="+tmp_dir,
+                         "--log_phi="+tmp_dir+"tmp.cnf",
+                         "--log_ksi="+tmp_dir+"tmp.cnf", # logging in case of SAT
+                         input_path]) #, stdout=FNULL, stderr=FNULL)
   if ret == 10:
     print "DONE"
     print "The given formula is TRUE."
-    clean(1)
-  elif ret != 20:
+    # clean(1)
+  elif ret == 20:
+    print "DONE"
+    print "The given formula is FALSE."
+  else:
     print "FAILED"
     print "There has been an error with code %d" % ret
     clean(2)
-  else:
-    print "DONE"
 
   assert(os.path.exists(tmp_dir + "tmp.cnf"))
-
   # Call the sat solver again on the .cnf file
   # This has to be done because no proof logging can be done in incremental mode
 
