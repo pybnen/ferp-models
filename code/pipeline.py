@@ -112,6 +112,11 @@ def main():
     clean(2)
 
   assert(os.path.exists(tmp_dir + "tmp.cnf"))
+  with open(tmp_dir + "tmp.cnf", "r") as f:
+    if len(f.readline()) == 0:
+      print("Output of Ijtihad is empty, make sure that the given qbf is not trivially true or false, e.g. it contains only existential variables.")
+      clean(100)
+  
   # Call the sat solver again on the .cnf file
   # This has to be done because no proof logging can be done in incremental mode
 
