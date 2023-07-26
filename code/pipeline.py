@@ -10,10 +10,15 @@ home = os.path.dirname(os.path.abspath(__file__)) + "/"
 
 #TODO deploy my version of ijtihad in repo, use this repo in requirements.py
 # use my version of ijtihad
-dependencies = ["../../ijtihad/ijtihad", "picosat-965/picosat", 
-                "booleforce-1.2/tracecheck", "toferp/toferp", 
-                "ferpcert/ferpcheck", "ferpcert2/ferpcert",
-                "certcheck-1.0.1/certcheck"]
+dependencies = [
+  "../../ijtihad/ijtihad",
+  "picosat-965/picosat", 
+  "booleforce-1.2/tracecheck",
+  "../../toferp/build/toferp", 
+  "../../ferpcert/build/ferpcheck",
+  "ferpcert2/ferpcert",       # ignore
+  "certcheck-1.0.1/certcheck" # ignore
+]
 
 dependencies = [home + x for x in dependencies]
 tmp_dir = home + "tmp/{}/".format(datetime.now().strftime("%Y%m%d_%H-%M-%S"))
@@ -91,7 +96,10 @@ def main():
                          "--log_phi="+tmp_dir+"tmp.cnf",
                          "--log_ksi="+tmp_dir+"tmp.cnf", # logging in case of SAT
                          input_path]) #, stdout=FNULL, stderr=FNULL)
+  is_sat = False
+  
   if ret == 10:
+    is_sat = True
     print "DONE"
     print "The given formula is TRUE."
     # clean(1)
@@ -127,12 +135,12 @@ def main():
   # The SAT solver only produces normal extended tracecheck proofs
   # Check the proof with tracecheck and extract binary resolution proof
 
-  sys.stdout.write("Checking unsat proof ... ")
+  sys.stdout.write("Checking %s proof ... " % ("sat" if is_sat else "unsat")) 
   sys.stdout.flush()
   ret = subprocess.check_output([dependencies[2], "-B", tmp_dir + "tmp.proof2", "-c",
                                  tmp_dir + "tmp.cnf", tmp_dir + "tmp.proof"])
   ret = ret.strip()
-  if ret != "resolved 1 root and 1 empty clause":
+  if ret != "resolved 1 root and 1 empty clause" and not is_sat:
     print "FAILED"
     print ret
     clean(5)
@@ -159,16 +167,20 @@ def main():
 
   # Check whether the FERP trace is consistent
 
-  sys.stdout.write("Checking FERP trace ... ")
+  sys.stdout.write("Checking FERP trace ...\n")
   sys.stdout.flush()
   ret = subprocess.call([dependencies[4], input_path, tmp_dir + "tmp.ferp"])
 
   if ret != 0:
-    print "FAILED", ret
+    print "Checking FERP trace ... FAILED", ret
     clean(7)
   else:
-    print "DONE"
-
+    print "Checking FERP trace ... DONE"
+    
+  if is_sat:
+    # ignore the rest for now
+    clean(0)
+  
   # Extract a circuit for the universals into an AIGER file
 
   sys.stdout.write("Extracting strategy ... ")
