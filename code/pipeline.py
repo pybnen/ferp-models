@@ -36,14 +36,19 @@ def assure_dir(path):
 
 def parse_args():
   sys.stdout.write("Parsing command line arguments ... ")
-  assert len(sys.argv) == 3
+  assert len(sys.argv) == 2 or len(sys.argv) == 3
+
   input_path = os.path.abspath(sys.argv[1])
-  output_path = os.path.abspath(sys.argv[2])
   qbf_name = ".".join(input_path.split("/")[-1].split(".")[:-1])
-  output_dir = "/".join(output_path.split("/")[:-1])
   if not os.path.exists(input_path):
     raise OSError("Input file %s does not exist" % input_path)
-  assure_dir(output_dir)
+  
+  output_path = None
+  if (len(sys.argv) == 3):
+    output_path = os.path.abspath(sys.argv[2])
+    output_dir = "/".join(output_path.split("/")[:-1])
+    assure_dir(output_dir)
+  
   print("DONE")
   return input_path, output_path, qbf_name
 
@@ -144,14 +149,14 @@ def main():
   sys.stdout.flush()
   ret = subprocess.check_output([dependencies[2], "-B", tmp_dir + "tmp.proof2", "-c",
                                  tmp_dir + "tmp.cnf", tmp_dir + "tmp.proof"])
-  ret = ret.strip()
-  if ret != "resolved 1 root and 1 empty clause" and not is_sat:
+  ret = ret.strip().decode('UTF-8')
+  if (ret == "resolved 1 root and 1 empty clause") or (ret == "resolved 0 roots and 1 empty clause" and is_sat):
+    if trim: os.remove(tmp_dir + "tmp.proof")
+    print("DONE")
+  else:
     print("FAILED")
     print(ret)
     clean(5)
-  else:
-    if trim: os.remove(tmp_dir + "tmp.proof")
-    print("DONE")
   
   assert (os.path.exists(tmp_dir + "tmp.proof2"))
   
@@ -182,7 +187,7 @@ def main():
   else:
     print("Checking FERP trace ... DONE")
     
-  if is_sat:
+  if output_path is None or is_sat:
     # ignore the rest for now
     clean(0)
   
