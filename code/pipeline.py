@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 from datetime import datetime
 import sys, os, shutil, errno, subprocess, signal
 
@@ -44,7 +44,7 @@ def parse_args():
   if not os.path.exists(input_path):
     raise OSError("Input file %s does not exist" % input_path)
   assure_dir(output_dir)
-  print "DONE"
+  print("DONE")
   return input_path, output_path, qbf_name
 
 
@@ -55,9 +55,9 @@ def check_dependencies():
     sys.stdout.write("Checking dependency: %s " % dep)
     sys.stdout.write((" " * (padlen - len(dep))) + "... ")
     if os.path.exists(dep) :
-      print "OK"
+      print("OK")
     else:
-      print "MISSING"
+      print("MISSING")
       missing += 1
   if missing > 0:
     raise OSError("One or more dependencies are missing")
@@ -69,7 +69,7 @@ def clean(ret):
 
 
 def term_handler(signum, frame):
-  print signum, "signal handler called. Clean exit."
+  print(signum, "signal handler called. Clean exit.")
   clean(-1)
 
 
@@ -77,8 +77,8 @@ def main():
   signal.signal(signal.SIGTERM, term_handler)
   signal.signal(signal.SIGINT, term_handler)
 
-  print "Home is at", home
-  print "Tmp is at", tmp_dir
+  print("Home is at", home)
+  print("Tmp is at", tmp_dir)
 
   input_path, output_path, qbf_name = parse_args()
   check_dependencies()
@@ -100,15 +100,15 @@ def main():
   
   if ret == 10:
     is_sat = True
-    print "DONE"
-    print "The given formula is TRUE."
+    print("DONE")
+    print("The given formula is TRUE.")
     # clean(1)
   elif ret == 20:
-    print "DONE"
-    print "The given formula is FALSE."
+    print("DONE")
+    print("The given formula is FALSE.")
   else:
-    print "FAILED"
-    print "There has been an error with code %d" % ret
+    print("FAILED")
+    print("There has been an error with code %d" % ret)
     clean(2)
 
   assert(os.path.exists(tmp_dir + "tmp.cnf"))
@@ -125,15 +125,15 @@ def main():
   ret = subprocess.call([dependencies[1], "-T", tmp_dir+"tmp.proof", tmp_dir+"tmp.cnf"] ) #,
                         # stdout=FNULL, stderr=FNULL)
   if ret == 10:
-    print "FAILED"
-    print "The expanded formula is SAT"
+    print("FAILED")
+    print("The expanded formula is SAT")
     clean(3)
   elif ret != 20:
-    print "FAILED"
-    print "There has been an error with code %d" % ret
+    print("FAILED")
+    print("There has been an error with code %d" % ret)
     clean(4)
   else:
-    print "DONE"
+    print("DONE")
 
   assert (os.path.exists(tmp_dir + "tmp.proof"))
 
@@ -146,12 +146,12 @@ def main():
                                  tmp_dir + "tmp.cnf", tmp_dir + "tmp.proof"])
   ret = ret.strip()
   if ret != "resolved 1 root and 1 empty clause" and not is_sat:
-    print "FAILED"
-    print ret
+    print("FAILED")
+    print(ret)
     clean(5)
   else:
     if trim: os.remove(tmp_dir + "tmp.proof")
-    print "DONE"
+    print("DONE")
   
   assert (os.path.exists(tmp_dir + "tmp.proof2"))
   
@@ -163,12 +163,12 @@ def main():
   ret = subprocess.call([dependencies[3], tmp_dir + "tmp.cnf", tmp_dir + "tmp.proof2", tmp_dir + "tmp.ferp"])
 
   if ret != 0:
-    print "FAILED", ret
+    print("FAILED", ret)
     clean(6)
   else:
     if trim: os.remove(tmp_dir + "tmp.cnf")
     if trim: os.remove(tmp_dir + "tmp.proof2")
-    print "DONE"
+    print("DONE")
 
   # Check whether the FERP trace is consistent
 
@@ -177,10 +177,10 @@ def main():
   ret = subprocess.call([dependencies[4], input_path, tmp_dir + "tmp.ferp"])
 
   if ret != 0:
-    print "Checking FERP trace ... FAILED", ret
+    print("Checking FERP trace ... FAILED", ret)
     clean(7)
   else:
-    print "Checking FERP trace ... DONE"
+    print("Checking FERP trace ... DONE")
     
   if is_sat:
     # ignore the rest for now
@@ -193,11 +193,11 @@ def main():
   ret = subprocess.call([dependencies[5], input_path, tmp_dir + "tmp.ferp", output_path])
 
   if ret != 0:
-    print "FAILED", ret
+    print("FAILED", ret)
     clean(8)
   else:
     if trim: os.remove(tmp_dir + "tmp.ferp")
-    print "DONE"
+    print("DONE")
 
   # Merge AIGER and QDIMACS files into a formula checkable by a SAT solver
 
@@ -209,25 +209,25 @@ def main():
   FCNF.close()
   
   if ret != 0:
-    print "FAILED", ret
+    print("FAILED", ret)
     clean(9)
   else:
-    print "DONE"
+    print("DONE")
 
   sys.stdout.write("Check validity of certificate ... ")
   sys.stdout.flush()
   ret = subprocess.call([dependencies[1], tmp_dir + "tmp.cnf2"],
                         stdout=FNULL, stderr=FNULL)
   if ret == 10:
-    print "FAILED"
-    print "The merged formula is SAT"
+    print("FAILED")
+    print("The merged formula is SAT")
     clean(10)
   elif ret != 20:
-    print "FAILED"
-    print "There has been an error with code %d" % ret
+    print("FAILED")
+    print("There has been an error with code %d" % ret)
     clean(11)
   else:
-    print "SUCCESS"
+    print("SUCCESS")
     subprocess.call(["gzip", output_path])
     clean(0)
 
