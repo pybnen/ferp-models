@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from datetime import datetime
 import sys, os, shutil, errno, subprocess, signal
+import time
 
 home = os.path.dirname(os.path.abspath(__file__)) + "/"
 # dependencies = ["ijtihad/ijtihad", "picosat-965/picosat", 
@@ -94,13 +95,17 @@ def main():
 
   sys.stdout.write("Calling QBF solver ... ")
   sys.stdout.flush()
-  ret = subprocess.call([dependencies[0],
-                         "--wit_per_call=-1",
-                         "--cex_per_call=-1",
-                         "--tmp_dir="+tmp_dir,
-                         "--log_phi="+tmp_dir+"tmp.cnf",
-                         "--log_ksi="+tmp_dir+"tmp.cnf", # logging in case of SAT
-                         input_path]) #, stdout=FNULL, stderr=FNULL)
+  start_time = time.time()
+  ret = subprocess.call([
+                          dependencies[0],
+                          "--wit_per_call=-1",
+                          "--cex_per_call=-1",
+                          "--tmp_dir="+tmp_dir,
+                          "--log_phi="+tmp_dir+"tmp.cnf",
+                          "--log_ksi="+tmp_dir+"tmp.cnf", # logging in case of SAT
+                          input_path
+                        ]) #, stdout=subprocess.DEVNULL)
+  time_ijtihad = time.time() - start_time
   is_sat = False
   
   if ret == 10:
@@ -124,11 +129,12 @@ def main():
   
   # Call the sat solver again on the .cnf file
   # This has to be done because no proof logging can be done in incremental mode
+  start_gen = time.time()
 
   sys.stdout.write("Calling SAT solver ... ")
   sys.stdout.flush()
-  ret = subprocess.call([dependencies[1], "-T", tmp_dir+"tmp.proof", tmp_dir+"tmp.cnf"] ) #,
-                        # stdout=FNULL, stderr=FNULL)
+  ret = subprocess.call([dependencies[1], "-v", "-T", tmp_dir+"tmp.proof", tmp_dir+"tmp.cnf"]) #, stdout=subprocess.DEVNULL)
+  
   if ret == 10:
     print("FAILED")
     print("The expanded formula is SAT")
@@ -147,17 +153,21 @@ def main():
 
   sys.stdout.write("Checking %s proof ... " % ("sat" if is_sat else "unsat")) 
   sys.stdout.flush()
-  ret = subprocess.check_output([dependencies[2], "-B", tmp_dir + "tmp.proof2", "-c",
-                                 tmp_dir + "tmp.cnf", tmp_dir + "tmp.proof"])
+  ret = subprocess.check_output([dependencies[2], "-v", "-B", tmp_dir + "tmp.proof2", "-c", tmp_dir + "tmp.cnf", tmp_dir + "tmp.proof"])
   ret = ret.strip().decode('UTF-8')
-  if (ret == "resolved 1 root and 1 empty clause") or (ret == "resolved 0 roots and 1 empty clause" and is_sat):
+  ret_lines = ret.split("\n")
+  
+  print(ret)
+  
+  # if (ret == "resolved 1 root and 1 empty clause") or (ret == "resolved 0 roots and 1 empty clause" and is_sat):
+  if ("resolved 1 root and 1 empty clause" in ret_lines or ("resolved 0 roots and 1 empty clause" in ret_lines and is_sat)):
     if trim: os.remove(tmp_dir + "tmp.proof")
     print("DONE")
   else:
     print("FAILED")
     print(ret)
     clean(5)
-  
+    
   assert (os.path.exists(tmp_dir + "tmp.proof2"))
   
   # Merge the comment information from the cnf and the binary resolution
@@ -165,8 +175,13 @@ def main():
 
   sys.stdout.write("Producing FERP trace ... ")
   sys.stdout.flush()
-  ret = subprocess.call([dependencies[3], tmp_dir + "tmp.cnf", tmp_dir + "tmp.proof2", tmp_dir + "tmp.ferp"])
-
+  start_toferp = time.time() 
+  ret = subprocess.call([dependencies[3], tmp_dir + "tmp.cnf", tmp_dir + "tmp.proof2", tmp_dir + "tmp.ferp"]) #, stdout=subprocess.DEVNULL)
+  end_toferp = time.time()
+  
+  time_toferp = end_toferp - start_toferp
+  time_gen = end_toferp - start_gen
+    
   if ret != 0:
     print("FAILED", ret)
     clean(6)
@@ -179,8 +194,9 @@ def main():
 
   sys.stdout.write("Checking FERP trace ...\n")
   sys.stdout.flush()
-  ret = subprocess.call([dependencies[4], input_path, tmp_dir + "tmp.ferp"])
-
+  start_time = time.time()
+  ret = subprocess.call([dependencies[4], input_path, tmp_dir + "tmp.ferp"]) #, stdout=subprocess.DEVNULL)
+  time_ferpcheck = time.time() - start_time
   if ret != 0:
     print("Checking FERP trace ... FAILED", ret)
     clean(7)
@@ -189,6 +205,14 @@ def main():
     
   if output_path is None or is_sat:
     # ignore the rest for now
+    print("PYTHON-TIMES------------------------------")
+    print(f"Solver:      {time_ijtihad:.6f} s")
+    print(f"Generation:  {time_gen:.6f} s")
+    print(f"ToFerp:      {time_toferp:.6f} s")
+    print(f"FerpCheck:   {time_ferpcheck:.6f} s")
+    print("------------------------------------------")
+          
+    #printf("      /Check time in seconds: %.4f / %.4f" % (time_ijtihad, time_ferpcheck))
     clean(0)
   
   # Extract a circuit for the universals into an AIGER file
