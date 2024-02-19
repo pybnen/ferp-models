@@ -66,6 +66,7 @@ def parse_args():
   parser.add_argument("-k", "--keep", help="keep ferp proof in <dir>", metavar="<dir>")
   parser.add_argument("-l", "--log", help="Log all tool output to <dir>", metavar="<dir>")
   parser.add_argument("--no-tseitin-optimisation", default=False, action='store_true')
+  parser.add_argument("--print", help="Print FERP proof", default=False, action="store_true")
   parser.add_argument("qdimacs_file", help="QBF formular in qdimacs file")
   parser.add_argument("output_file", help="Certificat file (unsat only)", default=None, nargs="?")  
   args = parser.parse_args()
@@ -309,6 +310,10 @@ def main():
   print(f"ToFerp:      {time_toferp:.6f} s")
   print(f"FerpCheck:   {time_ferpcheck:.6f} s")
   print("------------------------------------------")
+
+  if args.print:
+    with open(tmp_dir + "tmp.ferp") as ferp_fp:
+      print(ferp_fp.read())
   
   if output_path is None or is_sat:
     clean(0)
