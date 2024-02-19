@@ -65,6 +65,7 @@ def parse_args():
   parser.add_argument("-K", "--Keep", help="keep all intermediate files in <dir>", metavar="<dir>")
   parser.add_argument("-k", "--keep", help="keep ferp proof in <dir>", metavar="<dir>")
   parser.add_argument("-l", "--log", help="Log all tool output to <dir>", metavar="<dir>")
+  parser.add_argument("--no-tseitin-optimisation", default=False, action='store_true')
   parser.add_argument("qdimacs_file", help="QBF formular in qdimacs file")
   parser.add_argument("output_file", help="Certificat file (unsat only)", default=None, nargs="?")  
   args = parser.parse_args()
@@ -93,7 +94,7 @@ def parse_args():
     output_dir = "/".join(output_path.split("/")[:-1])
     assure_dir(output_dir)
 
-  return input_path, output_path, qbf_name
+  return input_path, output_path, qbf_name, args
 
 
 def check_dependencies():
@@ -118,7 +119,7 @@ def main():
   signal.signal(signal.SIGTERM, term_handler)
   signal.signal(signal.SIGINT, term_handler)
 
-  input_path, output_path, qbf_name = parse_args()
+  input_path, output_path, qbf_name, args = parse_args()
   
   check_dependencies()
   assure_dir(tmp_dir)
@@ -136,15 +137,21 @@ def main():
   
   log_fp = get_log_fp()
   start_time = time.time()
-  ret = subprocess.call([
-                          QBFSOLVER,
-                          "--wit_per_call=-1",
-                          "--cex_per_call=-1",
-                          "--tmp_dir="+tmp_dir,
-                          "--log_phi="+tmp_dir+"tmp.cnf",
-                          "--log_ksi="+tmp_dir+"tmp.cnf", # logging in case of SAT
-                          input_path
-                        ], stdout=log_fp)
+  
+  call_args = [
+    QBFSOLVER,
+    "--wit_per_call=-1",
+    "--cex_per_call=-1",
+    "--tmp_dir="+tmp_dir,
+    "--log_phi="+tmp_dir+"tmp.cnf",
+    "--log_ksi="+tmp_dir+"tmp.cnf", # logging in case of SAT
+    input_path
+  ]
+  
+  if args.no_tseitin_optimisation:
+    call_args.insert(1, '--tseitin_optimisation=0')
+  
+  ret = subprocess.call(call_args, stdout=log_fp)
   time_ijtihad = time.time() - start_time
   log_fp.close()
   is_sat = False
