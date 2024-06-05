@@ -6,13 +6,11 @@ from argparse import ArgumentParser
 import uuid
 
 home = os.path.dirname(os.path.abspath(__file__)) + "/"
-#TODO deploy my version of ijtihad in repo, use this repo in requirements.py
-# use my version of ijtihad
-QBFSOLVER = f"{home}../../ijtihad/ijtihad"
+QBFSOLVER = f"{home}ijtihad/ijtihad"
 SATSOLVER = f"{home}picosat-965/picosat"
 TRACECHECK = f"{home}booleforce-1.2/tracecheck"
-TOFERP = f"{home}../../toferp/build/toferp"
-FERPCHECK = f"{home}../../ferpcert/build/ferpcheck"
+TOFERP = f"{home}toferp/toferp"
+FERPCHECK = f"{home}ferpcert/ferpcheck"
 FERPCERT = f"{home}ferpcert2/ferpcert"
 CERTCHECK = f"{home}certcheck-1.0.1/certcheck"
 dependencies = [QBFSOLVER, SATSOLVER, TRACECHECK, TOFERP,  FERPCHECK, FERPCERT, CERTCHECK]

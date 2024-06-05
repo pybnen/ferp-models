@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 import requests
 import os, errno, tarfile, subprocess
@@ -47,9 +47,14 @@ def compile_jku(dir_name, tool_name, cfg_name, cfg_command):
     raise OSError("Could not create %s" % tool_path)
 
 
-def get_repository(dir_name, url):
+def get_repository(dir_name, url, branch=None):
+  if branch is None:
+    cmd = ["git", "clone", url]
+  else:
+    cmd = ["git", "clone", url, "--branch", branch]
+
   if not os.path.exists(dir_name):
-    subprocess.call(["git", "clone", url])
+    subprocess.call(cmd)
   if not os.path.exists(dir_name):
     raise OSError("Could not create %s" % dir_name)
 
@@ -94,9 +99,9 @@ def main():
   subprocess.call(["sed", "-i", "s/check_quantifier_levels (aig);/\/\/ check_quantifier_levels (aig);/g", "certcheck-1.0.1/certcheck.c"])
   compile_jku("certcheck-1.0.1", "certcheck", None, None)
   
-  get_repository("ijtihad", "https://extgit.iaik.tugraz.at/scos/ijtihad.git")
-  get_repository("toferp", "https://extgit.iaik.tugraz.at/scos/scos.sources/toferp.git")
-  get_repository("ferpcert", "https://extgit.iaik.tugraz.at/scos/scos.sources/ferpcert.git")
+  get_repository("ijtihad", "https://github.com/pybnen/ijtihad.git", 'qbfsat')
+  get_repository("toferp", "https://github.com/pybnen/toferp.git", 'version/all')
+  get_repository("ferpcert", "https://github.com/pybnen/ferpcert.git", 'version/clause-optimisation')
 
   compile_ijtihad()
   compile_ferp_tool("toferp", "toferp")
