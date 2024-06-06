@@ -1,6 +1,6 @@
 
 CC  = gcc
-CFLAGS = -Wall -g
+CFLAGS = -Wall -g -fcommon
 DEP = formula.h admin.h proof.h
 OBJ = formula.o admin.o ferpcert.o proof.o extract.o simpleaig.o
 LIBS = 
